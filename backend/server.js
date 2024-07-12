@@ -5,91 +5,149 @@ import cors from "cors";
 
 // example derived from https://marmelab.com/blog/2017/09/06/dive-into-graphql-part-iii-building-a-graphql-server-with-nodejs.html
 
-const tweets = [
-  { id: 1, body: "Lorem Ipsum", date: new Date(), author_id: 10 },
-  { id: 2, body: "Sic dolor amet", date: new Date(), author_id: 11 },
+let _notes = [
+  { id: "2", text: "CPSC 2650", img:null },
+  { id: "1", text: "An awesome web dev Note", img:null },
 ];
-const authors = [
-  {
-    id: 10,
-    username: "johndoe",
-    first_name: "John",
-    last_name: "Doe",
-    avatar_url: "acme.com/avatars/10",
-  },
-  {
-    id: 11,
-    username: "janedoe",
-    first_name: "Jane",
-    last_name: "Doe",
-    avatar_url: "acme.com/avatars/11",
-  },
-];
+
+// const tweets = [
+//   { id: 1, body: "Lorem Ipsum", date: new Date(), author_id: 10 },
+//   { id: 2, body: "Sic dolor amet", date: new Date(), author_id: 11 },
+// ];
+// const authors = [
+//   {
+//     id: 10,
+//     username: "johndoe",
+//     first_name: "John",
+//     last_name: "Doe",
+//     avatar_url: "acme.com/avatars/10",
+//   },
+//   {
+//     id: 11,
+//     username: "janedoe",
+//     first_name: "Jane",
+//     last_name: "Doe",
+//     avatar_url: "acme.com/avatars/11",
+//   },
+// ];
 
 // Schema definition
 const typeDefs = `#graphql
-  type Tweet {
+  type Note {
     id: ID!
-    body: String
-    date: Date
-    Author: User
+    text: String
+    img: Image
   }
 
-  type User {
-    id: ID!
-    username: String
-    first_name: String
-    last_name: String
-    full_name: String
-    name: String @deprecated
-    avatar_url: Url
+  type Image {
+    links: HTML
+    user: Author
+    img: URLS
+  }
+    type HTML {
+      html: String
+    }
+
+    type Author {
+      name: String
+    }
+
+    type URLS {
+      urls: [ImageLinks]
+    }
+
+    type ImageLinks {
+    raw: String
+    full: String
+    regular: String
+    small: String
+    thumb: String
+    small_s3: String
+    }
+
+  input ImageInput {
+    id: ID
+    links: HTMLInput
+    user: AuthorInput
+    img: URLSInput
   }
 
-  scalar Url
-  scalar Date
+  input HTMLInput {
+    html: String
+  }
+
+  input AuthorInput {
+    name: String
+  }
+
+  input URLSInput {
+    urls: [ImageLinksInput]
+  }
+
+  input ImageLinksInput {
+    raw: String
+    full: String
+    regular: String
+    small: String
+    thumb: String
+    small_s3: String
+  }
+
+  input NoteUpdates {
+    text: String
+    img: ImageInput
+  }
 
   type Query {
-    Tweet(id: ID!): Tweet
-    Tweets(limit: Int, sortField: String, sortOrder: String): [Tweet]
-    User: User
+    Note(id: ID!): Note
+    Notes(limit: Int, sortField: String, sortOrder: String): [Note]
   }
 
   type Mutation {
-    createTweet(body: String, author_id: ID!): Tweet
-    deleteTweet(id: ID!): Tweet
-    markTweetRead(id: ID!): Boolean
+    addNote(text: String, img: ImageInput): Note
+    removeNote(id: ID!): Note
+    editNote(id: ID!): Boolean
   }
 `;
 
 const resolvers = {
   Query: {
-    Tweets: () => tweets,
-    Tweet: (_, { id }) => tweets.find((tweet) => tweet.id == id),
+    Notes: () => _notes,
+    Note: (_, { id }) => _notes.find((note) => note.id == id),
   },
-  Tweet: {
-    Author: (tweet, _, context) => {
-      console.log(`loading author!`);
-      return authors.find((author) => author.id == tweet.author_id);
-    },
-  },
-  User: {
-    full_name: (author) => `${author.first_name} ${author.last_name}`,
-  },
+  // User: {
+  //   full_name: (author) => `${author.first_name} ${author.last_name}`,
+  // },
   Mutation: {
-    createTweet: (_, { body, author_id }) => {
-      const nextTweetId =
-        tweets.reduce((id, tweet) => {
-          return Math.max(id, tweet.id);
-        }, -1) + 1;
-      const newTweet = {
-        id: nextTweetId,
-        date: new Date(),
-        author_id,
-        body,
+    addNote: (_, { text, img }) => {
+      const nextNoteId =
+        (_notes.reduce((id, note) => {
+          return Math.max(id, note.id);
+        }, -1) + 1).toString();
+      const newNote = {
+        id: nextNoteId,
+        text,
+        img,
       };
-      tweets.push(newTweet);
-      return newTweet;
+      _notes.push(newNote);
+      return newNote;
     },
+    removeNote: (_, { id }) => {
+      let deletedNote = _notes.filter((note)=> note.id === id);
+      _notes = _notes.filter((note)=> note.id !== id);
+      return deletedNote;
+    },
+    editNote: (_, { noteId, updates }) => {
+      let result = false;
+      _notes = _notes.forEach(note => {
+        if (note.id === noteId) {
+          note.text = updates.text,
+          note.img = updates.img
+          result = true;
+        }
+      })
+      return result;
+    }
   },
 };
 

@@ -1,21 +1,30 @@
 import React from "react";
 import { useQuery, gql } from "@apollo/client";
 
-const GetTweets = gql`
+const getNotes = gql`
   query {
-    Tweets {
+    Notes {
       id
-      body
-      Author {
-        username
-        full_name
+      text
+      img {
+        links {
+          html
+        }
+        user {
+          name
+        }
+        img {
+          urls {
+            small
+          }
+        }
       }
     }
   }
 `;
 
 function App() {
-  const { loading, error, data } = useQuery(GetTweets, {
+  const { loading, error, data } = useQuery(getNotes, {
     onError: (error) => {
       console.log(`Apollo error: ${JSON.stringify(error, null, 2)}`);
     },
