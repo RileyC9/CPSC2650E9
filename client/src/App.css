@@ -5,7 +5,19 @@
   text-align: center;
 }
 
-.logo {
+nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.navLinks {
+  display: inline-block;
+  margin: 10px;
+}
+
+/* .logo {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
@@ -39,4 +51,4 @@
 
 .read-the-docs {
   color: #888;
-}
+} */

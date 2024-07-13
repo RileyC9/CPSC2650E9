@@ -11,6 +11,11 @@
   "description": "",
   "dependencies": {
     "@apollo/server": "^4.10.4",
-    "dataloader": "^2.2.2"
+    "cookie-parser": "^1.4.6",
+    "dataloader": "^2.2.2",
+    "dotenv": "^16.4.5",
+    "morgan": "^1.10.0",
+    "node-fetch": "^3.3.2",
+    "unsplash-js": "^7.0.19"
   }
 }

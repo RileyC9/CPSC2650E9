@@ -2,100 +2,41 @@ import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv"
+import nodeFetch from 'node-fetch';
+import { createApi } from 'unsplash-js';
+
+dotenv.config(); // Load environment variables
+
+const key = process.env.UNSPLASHAPI;
+
+const unsplash = createApi({
+  accessKey: process.env.UNSPLASHAPI,
+  fetch: nodeFetch.default,
+});
 
 // example derived from https://marmelab.com/blog/2017/09/06/dive-into-graphql-part-iii-building-a-graphql-server-with-nodejs.html
 
 let _notes = [
-  { id: "2", text: "CPSC 2650", img:null },
-  { id: "1", text: "An awesome web dev Note", img:null },
+  { id: "2", text: "CPSC 2650", imgurl:"", imgAuthor:"", imgSmall:"" },
+  { id: "1", text: "An awesome web dev Note", imgurl:"", imgAuthor:"", imgSmall:"" },
 ];
-
-// const tweets = [
-//   { id: 1, body: "Lorem Ipsum", date: new Date(), author_id: 10 },
-//   { id: 2, body: "Sic dolor amet", date: new Date(), author_id: 11 },
-// ];
-// const authors = [
-//   {
-//     id: 10,
-//     username: "johndoe",
-//     first_name: "John",
-//     last_name: "Doe",
-//     avatar_url: "acme.com/avatars/10",
-//   },
-//   {
-//     id: 11,
-//     username: "janedoe",
-//     first_name: "Jane",
-//     last_name: "Doe",
-//     avatar_url: "acme.com/avatars/11",
-//   },
-// ];
 
 // Schema definition
 const typeDefs = `#graphql
   type Note {
     id: ID!
     text: String
-    img: Image
+    imgurl: String
+    imgAuthor: String
+    imgSmall: String
   }
 
-  type Image {
-    links: HTML
-    user: Author
-    img: URLS
-  }
-    type HTML {
-      html: String
-    }
-
-    type Author {
-      name: String
-    }
-
-    type URLS {
-      urls: [ImageLinks]
-    }
-
-    type ImageLinks {
-    raw: String
-    full: String
-    regular: String
-    small: String
-    thumb: String
-    small_s3: String
-    }
-
-  input ImageInput {
-    id: ID
-    links: HTMLInput
-    user: AuthorInput
-    img: URLSInput
-  }
-
-  input HTMLInput {
-    html: String
-  }
-
-  input AuthorInput {
-    name: String
-  }
-
-  input URLSInput {
-    urls: [ImageLinksInput]
-  }
-
-  input ImageLinksInput {
-    raw: String
-    full: String
-    regular: String
-    small: String
-    thumb: String
-    small_s3: String
-  }
-
-  input NoteUpdates {
-    text: String
-    img: ImageInput
+  input Update {
+    text: String!
+    imgurl: String
+    imgAuthor: String
+    imgSmall: String
   }
 
   type Query {
@@ -104,49 +45,82 @@ const typeDefs = `#graphql
   }
 
   type Mutation {
-    addNote(text: String, img: ImageInput): Note
+    addNote(text: String ): Note
     removeNote(id: ID!): Note
-    editNote(id: ID!): Boolean
+    editNote(id: ID!, text: String, imgurl: String imgAuthor: String imgSmall: String): Note
+    generateImage(id: ID!, searchTerm: String!): Note
   }
 `;
 
 const resolvers = {
   Query: {
-    Notes: () => _notes,
+    Notes: () => {
+      console.log(_notes)
+      return _notes},
     Note: (_, { id }) => _notes.find((note) => note.id == id),
   },
-  // User: {
-  //   full_name: (author) => `${author.first_name} ${author.last_name}`,
-  // },
   Mutation: {
-    addNote: (_, { text, img }) => {
+    addNote: (_, { text }) => {
       const nextNoteId =
         (_notes.reduce((id, note) => {
           return Math.max(id, note.id);
-        }, -1) + 1).toString();
+        }, 0) +1).toString();
       const newNote = {
         id: nextNoteId,
         text,
-        img,
+        imgurl: "",
+        imgAuthor: "",
+        imgSmall: "",
       };
       _notes.push(newNote);
       return newNote;
     },
     removeNote: (_, { id }) => {
+      console.log(id)
+      console.log("hi")
       let deletedNote = _notes.filter((note)=> note.id === id);
       _notes = _notes.filter((note)=> note.id !== id);
+      console.log(_notes)
+      
       return deletedNote;
     },
-    editNote: (_, { noteId, updates }) => {
-      let result = false;
-      _notes = _notes.forEach(note => {
-        if (note.id === noteId) {
-          note.text = updates.text,
-          note.img = updates.img
-          result = true;
+    editNote: (_, { id, text, imgurl, imgAuthor, imgSmall }) => {
+      let result;
+      console.log(id, text, imgurl, imgAuthor, imgSmall)
+      _notes = _notes.map(note => {
+        if (note.id === id) {
+          note.text = text;
+          note.imgurl = imgurl;
+          note.imgAuthor = imgAuthor;
+          note.imgSmall = imgSmall;
+          result = note;
         }
+        console.log(note)
+        return note;
       })
       return result;
+    },
+    generateImage: async (_, { id, searchTerm }) => {
+      let note = _notes.filter((note) => note.id === id);
+      let term = searchTerm;
+      try {
+        // const result = (await fetch(`https://api.unsplash.com/search/photos?query=${note.text}&client_id=${key}`)).json();
+        const result = (await unsplash.search.getPhotos({
+          query: term,
+          page: 1,
+          perPage: 1,
+        }));
+        const image = result.response.results[0];
+        console.log(image[0])
+        if (image) {
+          note.imgurl = image.links.html;
+          note.imgAuthor = image.user.name;
+          note.imgSmall = image.urls.small;
+        }
+        return note;
+      }catch (err) {
+        console.log(err);
+      }
     }
   },
 };
