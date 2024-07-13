@@ -85,7 +85,7 @@ const resolvers = {
     head: (list) => getNodeById(list.head),
     length: (list) => list.length
   },
-  Mutatiion: {
+  Mutation: {
     addNode: (_, { value }) => {
       LinkedList = addNodeToEnd(LinkedList, value);
       return LinkedList;
